@@ -251,10 +251,13 @@ def _nn_matmul(bb: BlockBuilder, args: List[Expr], attrs: Attrs, output_shape: E
                     else:
                         b_indices.append(idx_spatial[i])
                 for i in range(offset, len(output_shape) - (2 - a_prepended - b_appended)):
-                    a_idx = i if is_a_larger else i - offset
-                    b_idx = i if not is_a_larger else i - offset
-                    a_indices.append(idx_spatial[i] if a_shape[a_idx] > 1 else 0)
-                    b_indices.append(idx_spatial[i] if b_shape[b_idx] > 1 else 0)
+                    a_dim = a_shape[i if is_a_larger else i - offset]
+                    b_dim = b_shape[i if not is_a_larger else i - offset]
+                    a_dim_is_one = isinstance(a_dim, tvm.tir.IntImm) and a_dim == 1
+                    b_dim_is_one = isinstance(b_dim, tvm.tir.IntImm) and b_dim == 1
+                    a_indices.append(0 if a_dim_is_one else idx_spatial[i])
+                    b_indices.append(0 if b_dim_is_one else idx_spatial[i])
+
                 if not a_prepended:
                     a_indices.append(idx_spatial[-2 + b_appended])
                 a_indices.append(idx_reduce)
