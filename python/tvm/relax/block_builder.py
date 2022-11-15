@@ -214,13 +214,12 @@ class BlockBuilder(Object):
                 return {k: _convert_te_arg_helper(arg[k]) for k in arg}
             elif (
                 isinstance(
-                    arg, (int, float, str, tir.IntImm, tir.FloatImm, tvm.ir.Type, tvm.ir.Attrs)
+                    arg, (int, float, str, tvm.ir.PrimExpr, tvm.ir.Type, tvm.ir.Attrs)
                 )
                 or arg is None
             ):
                 return arg
             raise TypeError("not supported type in emit_te: {}".format(type(arg)))
-
         new_arg = _convert_te_arg_helper(te_args)
         return new_arg, te_args_list
 
