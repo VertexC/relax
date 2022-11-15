@@ -1031,7 +1031,9 @@ Optional<Expr> InferShapeSplit(const Call& call, DiagnosticContext diag_ctx) {
     PrimExpr n_section_expr = tir::make_const(DataType::Int(32), n_section);
     Array<PrimExpr> shape = input_shape->values;
     shape.erase(shape.begin() + axis);
-    shape.insert(shape.begin() + axis, tvm::floordiv(len_axis, n_section_expr));
+    shape.insert(shape.begin() + axis,
+                 arith::Analyzer().Simplify(tvm::floordiv(len_axis, n_section_expr)));
+    // shape.insert(shape.begin() + axis, tvm::floordiv(len_axis, n_section_expr));
     for (int i = 0; i < n_section; ++i) {
       output_shape.push_back(ShapeExpr(shape));
     }
