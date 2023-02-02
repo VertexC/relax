@@ -135,6 +135,17 @@ Optional<Expr> InferShapeLayerNorm(const Call& call, DiagnosticContext diag_ctx)
 
 Type InferTypeLayerNorm(const Call& call, DiagnosticContext diag_ctx);
 
+/* relax.nn.ragged_tensor_pack*/
+Optional<Expr> InferShapeRaggedTensorPack(const Call& call, DiagnosticContext diag_ctx);
+
+Type InferTypeRaggedTensorPack(const Call& call, DiagnosticContext diag_ctx);
+
+/* relax.nn.ragged_matmul */
+Optional<Expr> InferShapeRaggedMatmul(const Call& call, DiagnosticContext diag_ctx);
+
+Type InferTypeRaggedMatmul(const Call& call, DiagnosticContext diag_ctx);
+
+
 /* relax.nn.matmul */
 Optional<Expr> InferShapeMatmul(const Call& call, DiagnosticContext diag_ctx);
 

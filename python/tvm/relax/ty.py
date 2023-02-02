@@ -16,11 +16,15 @@
 # under the License.
 # pylint: disable=invalid-name, unused-import
 """The type nodes of the Relax language."""
+from typing import Any, List, Optional, Union
 import tvm._ffi
 from tvm.ir import Type, TensorType, TupleType, FuncType, Span
 
 from . import _ffi_api
+from .. import relay
+from ..tir import PrimExpr
 
+Expr = relay.Expr
 
 @tvm._ffi.register_object("relax.ShapeType")
 class ShapeType(Type):
@@ -64,6 +68,20 @@ class DimType(Type):
 
     def __init__(self, span: Span = None) -> None:
         self.__init_handle_by_constructor__(_ffi_api.DimType, span)
+
+
+@tvm._ffi.register_object("relax.RaggedDynTensorType")
+class RaggedDynTensorType(Type):
+    def __init__(self, ndim=-1, dtype="float32", span: Span = None) -> None:
+        self.__init_handle_by_constructor__(_ffi_api.RaggedDynTensorType, ndim, dtype, span)
+
+
+# @tvm._ffi.register_object("relax.RaggedDimType")
+# class RaggedDimType(Type):
+#     def __init__(self, is_ragged: bool, fixed_bound: Optional[Var], 
+#             parent: Optional[Var], ind_ptr: Optional[Var], span: Span = None) -> None:
+#         self.__init_handle_by_constructor__(_ffi_api.RaggedDimType, 
+#             fixed_bound, parent, ind_ptr, is_ragged, span)
 
 
 def is_base_of(base: Type, derived: Type) -> bool:

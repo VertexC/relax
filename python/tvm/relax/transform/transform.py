@@ -91,6 +91,12 @@ def ToNonDataflow() -> tvm.ir.transform.Pass:
     return _ffi_api.ToNonDataflow()
 
 
+def RaggedMatmulToDenseMatmul() -> tvm.ir.transform.Pass:
+    return _ffi_api.RaggedMatmulToDenseMatmul()
+
+def AutobatchMatmul() -> tvm.ir.transform.Pass:
+    return _ffi_api.AutobatchMatmul()
+
 def CallTIRRewrite() -> tvm.ir.transform.Pass:
     """Perform explicit tensor allocation for call_tir.
 

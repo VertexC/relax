@@ -577,6 +577,27 @@ struct MatmulAttrs : public tvm::AttrsNode<MatmulAttrs> {
   }
 };  // struct MatmulAttrs
 
+/*! \brief Attributes for ragged matmul operator */
+struct RaggedMatmulAttrs : public tvm::AttrsNode<RaggedMatmulAttrs> {
+  DataType out_dtype;
+
+  TVM_DECLARE_ATTRS(RaggedMatmulAttrs, "relax.attrs.MatmulAttrs") {
+    TVM_ATTR_FIELD(out_dtype).describe("The data type of the output tensor");
+  }
+};  // struct RaggedMatmulAttrs
+
+
+/*! \brief Attributes for ragged matmul operator */
+struct RaggedTensorPackAttrs : public tvm::AttrsNode<RaggedTensorPackAttrs> {
+  DataType out_dtype;
+  int ndim;
+
+  TVM_DECLARE_ATTRS(RaggedTensorPackAttrs, "relax.attrs.RaggedTensorPackAttrs") {
+    TVM_ATTR_FIELD(out_dtype).describe("The data type of the output tensor");
+    TVM_ATTR_FIELD(ndim).describe("Number of dims");
+  }
+};  // struct RaggedTensorPackAttrs
+
 }  // namespace relax
 }  // namespace tvm
 #endif  // TVM_RELAX_OP_ATTR_TYPES_H_

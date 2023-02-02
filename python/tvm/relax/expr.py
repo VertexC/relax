@@ -25,8 +25,8 @@ import tvm._ffi
 from .. import relay
 from ..ir import BaseFunc, Node, SourceName, Span
 from ..relay import Id, Tuple, TupleGetItem
-from ..runtime import String
-from ..tir import PrimExpr
+from ..runtime import String, Object
+from ..tir import PrimExpr, Var
 from . import _ffi_api, ty
 
 Expr = relay.Expr
@@ -37,6 +37,24 @@ If = relay.If
 const = relay.const
 Constant = relay.Constant
 
+
+@tvm._ffi.register_object("relax.expr.RaggedDim")
+class RaggedDim(Object):
+    name: str
+    is_ragged: bool
+    bound: Optional[PrimExpr]
+    parent: Optional["RaggedDim"]
+    indptr: Optional[Var]
+    def __init__(
+        self, name, bound, is_ragged, parent, ind_ptr) -> None:
+        self.__init_handle_by_constructor__(_ffi_api.RaggedDim, name, bound, is_ragged, parent, ind_ptr)
+
+
+@tvm._ffi.register_object("relax.expr.RaggedLayoutExpr")
+class RaggedLayoutExpr(Expr):
+    def __init__(
+        self, dims: List[RaggedDim], group: List[List[int]], span: Span = None) -> None:
+        self.__init_handle_by_constructor__(_ffi_api.RaggedLayoutExpr, dims, group, span)
 
 @tvm._ffi.register_object("relax.expr.ShapeExpr")
 class ShapeExpr(Expr):

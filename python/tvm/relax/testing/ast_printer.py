@@ -27,6 +27,7 @@ import tvm
 from tvm import relax
 from tvm.ir.expr import PrimExpr
 from tvm.relax import ExprFunctor
+from tvm.relax.expr import RaggedDim
 
 
 def wrap_quotes(text: str) -> str:
@@ -132,6 +133,11 @@ class ASTPrinter(ExprFunctor):
         return self.build_ast_node(
             "ShapeExpr", values=self.build_list(map(self.visit_prim_expr_, op.values))
         )
+    
+    def visit_ragged_layout_expr_(self, op: relax.RaggedLayoutExpr) -> str:
+        return self.build_ast_node(
+            "RaggedLayoutExpr", values=self.build_list(map(self.visit_ragged_dim_, op.dims))
+        )
 
     def visit_runtime_dep_shape_(self, _: relax.RuntimeDepShape) -> str:
         # no fields, apparently?
@@ -179,11 +185,14 @@ class ASTPrinter(ExprFunctor):
                 attr_str = wrap_quotes(attr_val) if isinstance(attr_val, str) else str(attr_val)
                 return f"{wrap_quotes(attr_key)}: {attr_str}"
 
-            fields["attrs"] = self.build_list(
-                map(display_attrs, op.attrs.keys()),
-                open_tok="{",
-                close_tok="}",
-            )
+            # # FIXME: comment out by (bowen)
+            # *** AttributeError: <class 'tvm.runtime.object.Object'> has no attribute keys
+            # fields["attrs"] = self.build_list(
+            #     map(display_attrs, op.attrs.keys()),
+            #     open_tok="{",
+            #     close_tok="}",
+            # )
+            fields["attrs"] = []
         return self.build_ast_node("Call", **fields)
 
     def visit_seq_expr_(self, op: relax.SeqExpr) -> str:
@@ -209,6 +218,10 @@ class ASTPrinter(ExprFunctor):
         # TODO: We may want to print PrimExpr ASTs, but this is a simplification for now
         return self.build_ast_node("PrimExpr", value=f"`{str(prim_expr)}`")
 
+    def visit_ragged_dim_(self, prim_expr: RaggedDim) -> str:
+        # TODO: We may want to print PrimExpr ASTs, but this is a simplification for now
+        return self.build_ast_node("RaggedDim", value=f"ragged_dim")
+
     def visit_tuple_getitem_(self, op: relax.TupleGetItem) -> str:
         return self.build_ast_node(
             "TupleGetItem",
@@ -231,6 +244,13 @@ class ASTPrinter(ExprFunctor):
             if type_node.dtype != "":
                 fields["dtype"] = type_node.dtype
             return self.build_ast_node("DynTensorType", **fields)
+        if isinstance(type_node, relax.RaggedDynTensorType):
+            fields = {}
+            if type_node.ndim is not None:
+                fields["ndim"] = str(type_node.ndim)
+            if type_node.dtype != "":
+                fields["dtype"] = type_node.dtype
+            return self.build_ast_node("RaggedDynTensorType", **fields)
         if isinstance(type_node, relax.DimType):
             return self.build_ast_node("DimType")
         if isinstance(type_node, relax.TupleType):
@@ -289,6 +309,9 @@ class ASTPrinter(ExprFunctor):
         """
         Handle ordinary var bindings
         """
+        # return "test"
+        a = self.visit_expr(var_binding.var)
+        b = self.visit_expr(var_binding.value)
         return self.build_ast_node(
             "VarBinding",
             var=self.visit_expr(var_binding.var),

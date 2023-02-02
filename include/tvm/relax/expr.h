@@ -26,6 +26,8 @@
 #include <tvm/relay/expr.h>
 #include <tvm/runtime/container/array.h>
 #include <tvm/runtime/container/map.h>
+#include <tvm/runtime/container/string.h>
+#include <tvm/tir/var.h>
 #include <tvm/runtime/object.h>
 #include <tvm/tir/expr.h>
 
@@ -236,6 +238,90 @@ class Binding : public ObjectRef {
   const BindingNode* operator->() const { return static_cast<const BindingNode*>(data_.get()); }
   const BindingNode* get() const { return operator->(); }
   using ContainerType = BindingNode;
+};
+
+class RaggedDimNode : public Object {
+  public:
+    String name;
+    bool is_ragged;
+    Optional<PrimExpr> bound;
+    Optional<ObjectRef> parent;
+    Optional<Var> ind_ptr;
+
+  void VisitAttrs(AttrVisitor* v) {
+    v->Visit("name", &name);
+    v->Visit("is_ragged", &is_ragged);
+    v->Visit("bound", &bound);
+    v->Visit("parent", &parent);
+    v->Visit("ind_ptr", &ind_ptr);
+  }
+
+  bool SEqualReduce(const RaggedDimNode* other, SEqualReducer equal) const {
+    return equal(name, other->name) && equal(is_ragged, other->is_ragged) && equal(bound, other->bound) &&
+           equal(parent, other->parent) && equal(ind_ptr, other->ind_ptr);
+  }
+
+  void SHashReduce(SHashReducer hash_reduce) const {
+    hash_reduce(name);
+    hash_reduce(is_ragged);
+    hash_reduce(bound);
+    hash_reduce(parent);
+    hash_reduce(ind_ptr);
+  }
+
+  static constexpr const char* _type_key = "relax.expr.RaggedDim";
+  static constexpr const bool _type_has_method_sequal_reduce = true;
+  static constexpr const bool _type_has_method_shash_reduce = true;
+  TVM_DECLARE_BASE_OBJECT_INFO(RaggedDimNode, Object);
+};
+
+class RaggedDim : public ObjectRef {
+ public:
+  TVM_DLL explicit RaggedDim(String name, bool is_ragged, Optional<PrimExpr> bound, 
+                        Optional<ObjectRef> parent,
+                        Optional<Var> ind_ptr);
+
+  TVM_DEFINE_OBJECT_REF_METHODS(RaggedDim, ObjectRef, RaggedDimNode);
+  TVM_DEFINE_OBJECT_REF_COW_METHOD(RaggedDimNode);
+};
+
+
+class RaggedLayoutExprNode : public ExprNode {
+ public:
+  /*! The values of the shape expression. */
+  Array<RaggedDim> dims;
+  Array<Array<Integer>> group;
+
+  void VisitAttrs(AttrVisitor* v) {
+    v->Visit("dims", &dims);
+    v->Visit("group", &group);
+    v->Visit("shape_", &shape_);
+    v->Visit("_checked_type_", &checked_type_);
+    v->Visit("span", &span);
+  }
+
+  bool SEqualReduce(const RaggedLayoutExprNode* other, SEqualReducer equal) const {
+    return equal(dims, other->dims) && equal(checked_type_, other->checked_type_) &&
+           equal(shape_, other->shape_);
+  }
+
+  void SHashReduce(SHashReducer hash_reduce) const {
+    hash_reduce(dims);
+    hash_reduce(checked_type_);
+    hash_reduce(shape_);
+  }
+
+  static constexpr const char* _type_key = "relax.expr.RaggedLayoutExpr";
+  static constexpr const bool _type_has_method_sequal_reduce = true;
+  static constexpr const bool _type_has_method_shash_reduce = true;
+  TVM_DECLARE_FINAL_OBJECT_INFO(RaggedLayoutExprNode, ExprNode);
+};
+
+class RaggedLayoutExpr : public Expr {
+  public:
+    TVM_DLL explicit RaggedLayoutExpr(Array<RaggedDim> dims, Array<Array<Integer>> group, Span span = Span());
+    TVM_DEFINE_OBJECT_REF_METHODS(RaggedLayoutExpr, Expr, RaggedLayoutExprNode);
+    TVM_DEFINE_OBJECT_REF_COW_METHOD(RaggedLayoutExprNode);
 };
 
 /*! \brief Symbolic shape match, binds the variable of the lhs with the rhs. */

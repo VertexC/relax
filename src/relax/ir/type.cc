@@ -27,6 +27,7 @@
 
 namespace tvm {
 namespace relax {
+using tvm::runtime::Optional;
 
 TVM_REGISTER_NODE_TYPE(ShapeTypeNode);
 
@@ -70,6 +71,21 @@ TVM_REGISTER_GLOBAL("relax.DynTensorType").set_body_typed([](int ndim, DataType 
   return DynTensorType(ndim, dtype, span);
 });
 
+
+RaggedDynTensorType::RaggedDynTensorType(int ndim, DataType dtype, Span span) {
+  ObjectPtr<RaggedDynTensorTypeNode> n = make_object<RaggedDynTensorTypeNode>();
+  n->ndim = std::move(ndim);
+  n->dtype = std::move(dtype);
+  n->span = span;
+  data_ = std::move(n);
+}
+
+TVM_REGISTER_NODE_TYPE(RaggedDynTensorTypeNode);
+
+TVM_REGISTER_GLOBAL("relax.RaggedDynTensorTypeNode").set_body_typed([](int ndim, DataType dtype, Span span) {
+  return RaggedDynTensorType(ndim, dtype, span);
+});
+
 DimType::DimType(Span span) {
   ObjectPtr<DimTypeNode> n = make_object<DimTypeNode>();
   n->span = span;
@@ -79,6 +95,30 @@ DimType::DimType(Span span) {
 TVM_REGISTER_NODE_TYPE(DimTypeNode);
 
 TVM_REGISTER_GLOBAL("relax.DimType").set_body_typed([](Span span) { return DimType(span); });
+
+
+
+// RaggedDimType::RaggedDimType(bool is_ragged, runtime::Optional<Var> fixed_bound, 
+//       runtime::Optional<Var> parent, runtime::Optional<Var> ind_ptr, 
+//       Span span) {
+//   ObjectPtr<RaggedDimTypeNode> n = make_object<RaggedDimTypeNode>();
+//   n->is_ragged = is_ragged;
+//   if(is_ragged) {
+//     n->fixed_bound = fixed_bound;
+//   } else {
+//     n->parent = std::move(parent.value());
+//     n->ind_ptr = std::move(ind_ptr.value());
+//   }
+//   n->span = span;
+//   data_ = std::move(n);
+// }
+
+// TVM_REGISTER_NODE_TYPE(RaggedDimType);
+
+// TVM_REGISTER_GLOBAL("relax.RaggedDimType").set_body_typed(
+//   [](bool is_ragged, runtime::Optional<Var> fixed_bound, 
+//       runtime::Optional<Var> parent, runtime::Optional<Var> ind_ptr, 
+//       Span span) { return RaggedDimType(fixed_bound, parent, ind_ptr, span); });
 
 /*!
  * \brief Utility class for generic type dispatching:

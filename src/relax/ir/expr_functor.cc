@@ -107,6 +107,8 @@ void ExprVisitor::VisitExpr_(const TupleGetItemNode* op) {
 
 void ExprVisitor::VisitExpr_(const ShapeExprNode* op) { this->VisitSpan(op->span); }
 
+void ExprVisitor::VisitExpr_(const RaggedLayoutExprNode* op) { this->VisitSpan(op->span); }
+
 void ExprVisitor::VisitExpr_(const RuntimeDepShapeNode* op) { this->VisitSpan(op->span); }
 
 void ExprVisitor::VisitExpr_(const ExternFuncNode* op) { this->VisitSpan(op->span); }
@@ -310,6 +312,7 @@ Expr ExprMutatorBase::VisitExpr_(const TupleGetItemNode* op) {
 }
 
 Expr ExprMutatorBase::VisitExpr_(const ShapeExprNode* op) { return GetRef<Expr>(op); }
+Expr ExprMutatorBase::VisitExpr_(const RaggedLayoutExprNode* op) { return GetRef<Expr>(op); }
 
 Expr ExprMutatorBase::VisitExpr_(const RuntimeDepShapeNode* op) { return GetRef<Expr>(op); }
 
@@ -420,6 +423,7 @@ Expr ExprMutator::VisitExpr_(const FunctionNode* op) {
 
   Type ret_type = this->VisitType(op->ret_type);
   Expr ret_shape = this->VisitExpr(op->ret_shape);
+  LOG(INFO) << ret_type << " " << ret_shape;
   Expr body = this->VisitWithNewScope(op->body);
 
   if (all_params_unchanged && ret_type.same_as(op->ret_type) && body.same_as(op->body) &&

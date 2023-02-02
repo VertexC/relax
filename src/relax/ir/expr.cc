@@ -50,6 +50,23 @@ TVM_REGISTER_GLOBAL("relax.ShapeExpr").set_body_typed([](Array<PrimExpr> values,
   return ShapeExpr(values, span);
 });
 
+
+TVM_REGISTER_NODE_TYPE(RaggedLayoutExprNode);
+
+RaggedLayoutExpr::RaggedLayoutExpr(Array<RaggedDim> dims, Array<Array<Integer>> group,
+    Span span) {
+  ObjectPtr<RaggedLayoutExprNode> n = make_object<RaggedLayoutExprNode>();
+  n->dims = std::move(dims);
+  n->group = group;
+  n->shape_ = NullOpt;
+  n->checked_type_ = ShapeType();
+  data_ = std::move(n);
+}
+
+TVM_REGISTER_GLOBAL("relax.RaggedLayoutExpr").set_body_typed([](Array<RaggedDim> dims, Array<Array<Integer>> group, Span span) {
+  return RaggedLayoutExpr(dims, group, span);
+});
+
 TVM_REGISTER_NODE_TYPE(RuntimeDepShapeNode);
 
 RuntimeDepShape::RuntimeDepShape(Span span) {
@@ -122,6 +139,29 @@ TVM_REGISTER_GLOBAL("relax.DataflowVarFromId")
     .set_body_typed([](Id vid, Optional<Expr> shape_annotation, Optional<Type> type_annotation,
                        Span span) {
       return DataflowVar(vid, shape_annotation, type_annotation, span);
+    });
+
+TVM_REGISTER_NODE_TYPE(RaggedDimNode);
+
+RaggedDim::RaggedDim(String name, bool is_ragged, Optional<PrimExpr> bound, 
+                        Optional<ObjectRef> parent,
+                        Optional<Var> ind_ptr) {
+  ObjectPtr<RaggedDimNode> n = make_object<RaggedDimNode>();
+  n->name = std::move(name);
+  n->is_ragged = is_ragged;
+  if(is_ragged) {
+    n->parent = std::move(parent.value());
+    n->ind_ptr = std::move(ind_ptr.value());
+  } else {
+    n->bound = std::move(bound.value());
+  }
+  data_ = std::move(n);
+}
+
+TVM_REGISTER_GLOBAL("relax.RaggedDim")
+    .set_body_typed([](String name, bool is_ragged, Optional<PrimExpr> bound, Optional<ObjectRef> parent,
+                        Optional<Var> ind_ptr) {
+      return RaggedDim(name, is_ragged, bound, parent, ind_ptr);
     });
 
 TVM_REGISTER_NODE_TYPE(BindingNode);

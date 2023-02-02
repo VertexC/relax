@@ -18,6 +18,7 @@
  */
 
 #include "nn.h"
+#include "../make_op.h"
 
 namespace tvm {
 namespace relax {
@@ -427,6 +428,93 @@ Type InferTypeLayerNorm(const Call& call, DiagnosticContext diag_ctx) {
 
   return GetRef<DynTensorType>(data_type);
 }
+
+/* relax.nn.ragged_pack */
+TVM_REGISTER_NODE_TYPE(RaggedTensorPackAttrs);
+
+RELAX_REGISTER_OP("relax.nn.ragged_tensor_pack")
+    .set_num_inputs(3)
+    .add_argument("layout", "Layout", "")
+    .add_argument("data_ptr", "Data", "")
+    .add_argument("ndim", "Dims", "")
+    .set_attr<FInferShape>("FInferShape", InferShapeRaggedTensorPack)
+    .set_attr<FInferType>("FInferType", InferTypeRaggedTensorPack);
+
+Expr MakeRaggedTensorPack(Expr layout, Var data_ptr, int ndim, DataType out_dtype) {
+  LOG(INFO) << "ragged_tensor_pack " << layout;
+  ObjectPtr<RaggedTensorPackAttrs> attrs = make_object<RaggedTensorPackAttrs>();
+  attrs->out_dtype = out_dtype;
+  attrs->ndim = ndim;
+
+  static const Op& op = Op::Get("relax.nn.ragged_tensor_pack");
+  LOG(INFO) << layout;
+  return Call(op, {std::move(layout), std::move(data_ptr)}, Attrs(attrs), {});
+}
+
+Optional<Expr> InferShapeRaggedTensorPack(const Call& call, DiagnosticContext diag_ctx) {
+  return call->args[0];
+}
+
+Type InferTypeRaggedTensorPack(const Call& call, DiagnosticContext diag_ctx) {
+  const auto* attrs = call->attrs.as<RaggedTensorPackAttrs>();
+  return RaggedDynTensorType(attrs->ndim, attrs->out_dtype);
+}
+
+TVM_REGISTER_GLOBAL("relax.op.nn.ragged_tensor_pack").set_body_typed(MakeRaggedTensorPack);
+
+
+/* relax.nn.ragged_matmul */
+TVM_REGISTER_NODE_TYPE(RaggedMatmulAttrs);
+
+RELAX_REGISTER_OP("relax.nn.ragged_matmul")
+    .set_num_inputs(2)
+    .add_argument("a", "Tensor", "The left operand of the matmul.")
+    .add_argument("b", "Tensor", "The right operand of the matmul.")
+    .set_attr<FInferShape>("FInferShape", InferShapeRaggedMatmul)
+    .set_attr<FInferType>("FInferType", InferTypeRaggedMatmul);
+
+/*
+  Current raggedmatul only support left as ragged tensor (ndims = 3, 
+    the right most dim is dense), 
+  right as dense tensor, (ndim = 2)
+*/
+Expr MakeRaggedMatmul(Expr a, Expr b, DataType out_dtype) {
+  ObjectPtr<RaggedMatmulAttrs> attrs = make_object<RaggedMatmulAttrs>();
+  attrs->out_dtype = out_dtype;
+
+  static const Op& op = Op::Get("relax.nn.ragged_matmul");
+  return Call(op, {std::move(a), std::move(b)}, Attrs(attrs), {});
+}
+
+Optional<Expr> InferShapeRaggedMatmul(const Call& call, DiagnosticContext diag_ctx) {
+  const auto* a_layout_expr = call->args[0]->shape().as<RaggedLayoutExprNode>();
+  const auto* b_shape_expr = call->args[1]->shape().as<ShapeExprNode>();
+  LOG(INFO) << a_layout_expr->dims;
+  Array<RaggedDim> a_layout = a_layout_expr->dims;
+  Array<PrimExpr> b_shape = b_shape_expr->values;
+
+  Array<RaggedDim> out_layout;
+  int a_ndim = a_layout.size();
+
+  for(int i=0; i < a_ndim - 1; i++) {
+    out_layout.push_back(a_layout[i]);
+  }
+  // build a RaggedDim
+  // TODO (bowenc): check if b_shape is Var, if it is, reuse the name
+  RaggedDim dim = RaggedDim("test", false, b_shape[1], NullOpt, NullOpt);
+  out_layout.push_back(dim);
+  return RaggedLayoutExpr(out_layout, a_layout_expr->group);
+}
+
+Type InferTypeRaggedMatmul(const Call& call, DiagnosticContext diag_ctx) {
+  const auto* a_type = call->args[0]->checked_type().as<RaggedDynTensorTypeNode>();
+  int a_ndim = a_type->ndim;
+
+  return RaggedDynTensorType(a_ndim, a_type->dtype);
+}
+
+TVM_REGISTER_GLOBAL("relax.op.nn.ragged_matmul").set_body_typed(MakeRaggedMatmul);
+
 
 /* relax.nn.matmul */
 TVM_REGISTER_NODE_TYPE(MatmulAttrs);

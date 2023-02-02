@@ -525,6 +525,11 @@ def layer_norm(
         axis = [axis]
     return _ffi_api.layer_norm(data, gamma, beta, axis, epsilon, center, scale)
 
+def ragged_matmul(a: Expr, b: Expr, out_dtype: str = "") -> Expr:
+    return _ffi_api.ragged_matmul(a, b, out_dtype)
+
+def ragged_tensor_pack(layout, data_ptr, ndim, out_dtype: str = ""):
+    return _ffi_api.ragged_tensor_pack(layout, data_ptr, ndim, out_dtype)
 
 def matmul(a: Expr, b: Expr, out_dtype: str = "") -> Expr:
     """

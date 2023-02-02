@@ -69,6 +69,8 @@ from tvm.relax.op import (
     trilu,
     unique,
     variance,
+    ragged_matmul,
+    ragged_tensor_pack,
 )
 from tvm.relax.ty import ObjectType, ShapeType
 from tvm.runtime import Object as tvm_Object
@@ -437,4 +439,6 @@ __all__ = [
     "variance",
     "shape_of",
     "tensor",
+    "ragged_matmul",
+    "ragged_tensor_pack",
 ]

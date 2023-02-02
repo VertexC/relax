@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # pylint: disable=redefined-builtin
 """The base Relax operators."""
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
 import tvm
 from tvm.runtime.object import Object
@@ -33,7 +33,7 @@ def call_tir(
     args: Union[Expr, Tuple, List[Expr]],
     shape: Union[Tuple, ShapeExpr, List[int]],
     dtype: Union[str, List[str]],
-    tir_vars: Optional[ShapeExpr] = None,
+    tir_vars: Union[ShapeExpr, Tuple, List] = None,
 ) -> Call:
     """
     Call a destination-passing-style function and return the output.
@@ -52,7 +52,7 @@ def call_tir(
     dtype: Union[str, List[str]]
         The output dtype. List[str] if multiple outputs, str if single output.
 
-    tir_vars : ShapeExpr, optional
+    tir_vars : Optional[Union[ShapeExpr, Tuple, List]]
         ShapeExpr representing a tuple of integers to unpack when calling func. Is null if not used
 
     Returns
@@ -60,6 +60,10 @@ def call_tir(
     ret: Call
         A call node for the call_tir operator.
     """
+    if isinstance(tir_vars, (tuple, list)):
+        tir_vars = ShapeExpr(tir_vars)
+        assert all(isinstance(value, tvm.tir.Var) for value in tir_vars.values)
+
     if isinstance(func, str):
         func = ExternFunc(func)
 

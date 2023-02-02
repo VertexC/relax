@@ -50,6 +50,7 @@ class BlockBuilderNode::ExprNormalizer : public ExprFunctor<Expr(const Expr&)> {
   RELAX_EXPR_NORMALIZER_LEAF(GlobalVarNode);
   RELAX_EXPR_NORMALIZER_LEAF(OpNode);
   RELAX_EXPR_NORMALIZER_LEAF(ShapeExprNode);
+  RELAX_EXPR_NORMALIZER_LEAF(RaggedLayoutExprNode);
 
   // TODO(@altanh): CopyOnWrite
 
@@ -123,6 +124,7 @@ class BlockBuilderNode::ExprNormalizer : public ExprFunctor<Expr(const Expr&)> {
     if (!op->args.empty()) {
       for (const Expr& arg : op->args) {
         Expr new_arg = this->Bind(arg);
+        LOG(INFO) <<  "new_arg: " << new_arg << ", arg: " << arg;
         new_args.push_back(new_arg);
         unchanged &= new_arg.same_as(arg);
       }
@@ -144,6 +146,7 @@ class BlockBuilderNode::ExprNormalizer : public ExprFunctor<Expr(const Expr&)> {
       // shape inference
       auto inferred_shape =
           InferShape(call, this->builder_->diag_ctx_, this->builder_->context_mod_);
+      LOG(INFO) <<  "with call" << call << "inferred_shape " << inferred_shape;
       if (inferred_shape) {
         UpdateShape(call, inferred_shape.value());
       }
@@ -500,7 +503,7 @@ class BlockBuilderNode::ExprNormalizer : public ExprFunctor<Expr(const Expr&)> {
     // NB: tuples are treated as leaf nodes for ergonomics
     // TODO(@altanh, @yuchen): remove TupleNode from leaf
     return expr.as<VarNode>() || expr.as<GlobalVarNode>() || expr.as<ConstantNode>() ||
-           expr.as<ShapeExprNode>() || expr.as<RuntimeDepShapeNode>() ||
+           expr.as<ShapeExprNode>() || expr.as<RaggedLayoutExprNode>() || expr.as<RuntimeDepShapeNode>() ||
            expr.as<ExternFuncNode>() || expr.as<OpNode>() || expr.as<TupleNode>();
   }
 

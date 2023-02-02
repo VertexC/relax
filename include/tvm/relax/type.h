@@ -148,6 +148,86 @@ class DimType : public Type {
   TVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(DimType, Type, DimTypeNode);
 };
 
+class RaggedDynTensorTypeNode : public BaseTensorTypeNode {
+ public:
+  /*!
+   * \brief The number of dimensions of the tensor, use -1 to denote tensor with unknwon number of
+   * dimensions.
+   */
+  int ndim;
+  /*! \brief The content data type, use void to denote the dtype is unknown. */
+  DataType dtype;
+
+  void VisitAttrs(tvm::AttrVisitor* v) {
+    v->Visit("ndim", &ndim);
+    v->Visit("dtype", &dtype);
+    v->Visit("span", &span);
+  }
+
+  bool SEqualReduce(const RaggedDynTensorTypeNode* other, SEqualReducer equal) const {
+    return equal(ndim, other->ndim) && equal(dtype, other->dtype);
+  }
+
+  void SHashReduce(SHashReducer hash_reduce) const {
+    hash_reduce(ndim);
+    hash_reduce(dtype);
+  }
+
+  inline bool IsUnknownNdim() const { return ndim == -1; }
+
+  inline bool IsUnknownDtype() const { return dtype.is_void(); }
+
+  static constexpr const char* _type_key = "relax.RaggedDynTensorType";
+  TVM_DECLARE_FINAL_OBJECT_INFO(RaggedDynTensorTypeNode, BaseTensorTypeNode);
+};
+
+/*!
+ * \brief Managed reference to DynTensorTypeNode.
+ * \sa DynTensorTypeNode.
+ */
+class RaggedDynTensorType : public Type {
+ public:
+  /*!
+   * \brief Constructor.
+   * \param shape The shape of the tensor.
+   * \param dtype The runtime dtype of the tensor's elements.
+   */
+  TVM_DLL RaggedDynTensorType(int ndim, DataType dtype, Span span = Span());
+
+  TVM_DEFINE_OBJECT_REF_METHODS(RaggedDynTensorType, Type, RaggedDynTensorTypeNode);
+};
+
+// class RaggedDimTypeNode : public TypeNode {
+//   bool is_ragged;
+//   Var fixed_bound;
+//   Var parent;
+//   Var ind_ptr;
+
+//  public:
+//   // TODO: add ragged dim type
+//   void VisitAttrs(tvm::AttrVisitor* v) { 
+//     v->Visit("span", &span); 
+//   }
+
+//   bool SEqualReduce(const DimTypeNode* other, SEqualReducer equal) const { return true; }
+
+//   void SHashReduce(SHashReducer hash_reduce) const { hash_reduce(0); }
+
+//   static constexpr const char* _type_key = "relax.RaggedDimType";
+//   TVM_DECLARE_FINAL_OBJECT_INFO(RaggedDimTypeNode, TypeNode);
+// };
+
+// class RaggedDimType : public Type {
+//   public:
+//     // TODO: add ragged dim type
+//     TVM_DLL RaggedDimType(
+//       bool is_ragged, runtime::Optional<Var> fixed_bound, 
+//       runtime::Optional<Var> parent, runtime::Optional<Var> ind_ptr, 
+//       Span span = Span());
+
+//     TVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(RaggedDimType, Type, RaggedDimTypeNode);
+// };
+
 /*!
  * \brief Check the subtype relationship between base and derived.
  * \param base The base type.
