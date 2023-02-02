@@ -1,0 +1,33 @@
+<class 'tvm.relax.expr.RaggedLayoutExpr'>
+@tvm.script.ir_module
+class Module:
+    @R.function
+    def main(rt_data: Tensor((g, h), "float32"), ind_ptr: Tensor(((b + 1),), "int64"), w: Tensor((h, k), "float32")) -> RaggedTensor(None, "float32", ndim = 3):
+        # block 0
+        with R.dataflow():
+            lv: RaggedTensor((b_r[0], l_r[1], h_r[0]), "float32") = relax.nn.ragged_tensor_pack((b_r[0], l_r[1], h_r[0]), rt_data, out_dtype="float32", ndim=3, attrs_type_key="relax.attrs.RaggedTensorPackAttrs")
+            gv: RaggedTensor((b_r[0], l_r[1], test[0]), "float32") = relax.nn.ragged_matmul(lv, w, out_dtype="", attrs_type_key="relax.attrs.MatmulAttrs")
+            R.output(gv)
+        return gv
+    
+@tvm.script.ir_module
+class Module:
+    @R.function
+    def main(rt_data: Tensor((g, h), "float32"), ind_ptr: Tensor(((b + 1),), "int64"), w: Tensor((h, k), "float32")) -> Tensor(None, "float32", ndim = 2):
+        # block 0
+        with R.dataflow():
+            out: Tensor((g, k), "float32") = relax.nn.matmul(rt_data, w, out_dtype="float32", attrs_type_key="relax.attrs.MatmulAttrs")
+            gv: Tensor((g, k), "float32") = out
+            R.output(gv)
+        return gv
+    
+[[3.0196097 2.4329996 2.956374  2.4343822 3.6853228]
+ [3.1940885 2.355607  2.7090082 2.5397406 3.6734068]
+ [2.5301852 1.7630591 2.5195153 1.8913451 2.977959 ]
+ [3.8100696 2.5468967 3.9561448 3.0881836 4.3822336]
+ [2.2603517 1.5141301 2.4805424 1.7826912 2.5685434]
+ [2.645018  1.2676963 2.9069269 1.9857789 2.6112142]
+ [2.9211094 2.1991134 3.2918103 2.4396415 3.2966726]
+ [3.4553914 2.4071503 3.1608725 2.51696   3.1663506]
+ [3.0244508 2.3547451 2.9157758 1.8982555 3.4846282]
+ [2.9856155 2.490512  3.1947753 2.6083524 3.6917381]]
