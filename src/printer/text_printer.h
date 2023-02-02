@@ -273,6 +273,8 @@ class RelaxScriptPrinter : public relax::IRFunctor<Doc(const ObjectRef&)>,
   Doc VisitNode_(const relax::VarNode* op) override;
   Doc VisitNode_(const relax::DataflowVarNode* op) override;
   Doc VisitNode_(const relax::ShapeExprNode* op) override;
+  Doc VisitNode_(const relax::RaggedLayoutExprNode* op) override;
+  Doc VisitNode_(const relax::RaggedDimNode* op) override;
   Doc VisitNode_(const relax::RuntimeDepShapeNode* op) override;
   Doc VisitNode_(const relax::MatchShapeNode* op) override;
   Doc VisitNode_(const relax::VarBindingNode* op) override;
@@ -301,11 +303,13 @@ class RelaxScriptPrinter : public relax::IRFunctor<Doc(const ObjectRef&)>,
 
   Doc PrintVarAnnotation(const relax::Var& var);
   Doc PrintTensorAnnotation(const relax::DynTensorType& ty, const Optional<ObjectRef>& shape);
+  Doc PrintRaggedTensorAnnotation(const relax::RaggedDynTensorType& ty, const Optional<ObjectRef>& shape);
   Doc PrintTupleAnnotation(const TupleType& ty, const Optional<ObjectRef>& shape);
 
   Doc VisitType_(const relax::ShapeTypeNode* node) override;
   Doc VisitType_(const relax::ObjectTypeNode* node) override;
   Doc VisitType_(const relax::DynTensorTypeNode* node) override;
+  Doc VisitType_(const relax::RaggedDynTensorTypeNode* node) override;
   Doc VisitType_(const relay::TupleTypeNode* node) override;
   Doc VisitType_(const relay::FuncTypeNode* node) override;
 

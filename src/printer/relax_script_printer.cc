@@ -87,14 +87,16 @@ Doc RelaxScriptPrinter::VisitNode_(const relay::CallNode* op) {
   if (op->op == call_tir_op) {
     doc << "R.call_tir";
 
-    for (const Expr& arg : op->args) {
-      args.push_back(Print(arg));
+    int n_arg = op->args.size();
+    ICHECK(n_arg == 3 || n_arg == 4);
+    for (int i = 0; i < 3; ++i) {
+      args.push_back(Print(op->args[i]));
     }
     doc << "(" << Doc::Concat(args, Doc::Text(", "));
 
     Type output_type = op->type_args[0];
     if (const auto* out_type = output_type.as<DynTensorTypeNode>()) {
-      doc << ", dtype=" << PrintDType(out_type->dtype) << ")";
+      doc << ", dtype=" << PrintDType(out_type->dtype);
     } else if (const auto* out_type = output_type.as<TupleTypeNode>()) {
       std::vector<Doc> dtypes;
       for (auto field : out_type->fields) {
@@ -106,10 +108,16 @@ Doc RelaxScriptPrinter::VisitNode_(const relay::CallNode* op) {
           LOG(FATAL) << "TypeError: Invalid type: " << field_type->GetTypeKey();
         }
       }
-      doc << ", dtype=(" << Doc::Concat(dtypes, Doc::Text(", ")) << "))";
+      doc << ", dtype=(" << Doc::Concat(dtypes, Doc::Text(", ")) << ")";
     } else {
       LOG(FATAL) << "TypeError: Invalid type: " << output_type->GetTypeKey();
     }
+
+    if (n_arg == 4) {
+      doc << ", tir_vars=" << Print(op->args[3]);
+    }
+    doc << ")";
+    
     return doc;
   }
 
@@ -150,6 +158,12 @@ Doc RelaxScriptPrinter::VisitNode_(const OpNode* op) { return Doc::Text(op->name
 Doc RelaxScriptPrinter::VisitNode_(const relay::TupleGetItemNode* op) {
   Doc doc;
   doc << Print(op->tuple) << "[" << op->index << "]";
+  return doc;
+}
+
+Doc RelaxScriptPrinter::VisitNode_(const relax::RaggedDimNode* op) {
+  Doc doc;
+  doc << Doc::Text(op->name) << "[" << op->is_ragged << "]";
   return doc;
 }
 
@@ -231,6 +245,23 @@ Doc RelaxScriptPrinter::VisitNode_(const relax::ShapeExprNode* op) {
 
   std::vector<Doc> fields;
   for (const PrimExpr& field : op->values) {
+    fields.push_back(Print(field));
+  }
+  doc << "(" << Doc::Concat(fields, Doc::Text(", "));
+  if (fields.size() == 1) {
+    doc << ",";
+  }
+  doc << ")";
+  return doc;
+}
+
+Doc RelaxScriptPrinter::VisitNode_(const relax::RaggedLayoutExprNode* op) {
+  // TODO(@altanh): support more PrimExpr printing, and check that empty tuple
+  //                is never ambiguously printed as "()"
+  Doc doc;
+
+  std::vector<Doc> fields;
+  for (const RaggedDim& field : op->dims) {
     fields.push_back(Print(field));
   }
   doc << "(" << Doc::Concat(fields, Doc::Text(", "));
@@ -386,6 +417,11 @@ Doc RelaxScriptPrinter::VisitType_(const relax::ObjectTypeNode* node) {
 Doc RelaxScriptPrinter::VisitType_(const relax::DynTensorTypeNode* node) {
   // NOTE: to print shape information, use PrintTensorAnnotation
   return PrintTensorAnnotation(GetRef<DynTensorType>(node), NullOpt);
+}
+
+Doc RelaxScriptPrinter::VisitType_(const relax::RaggedDynTensorTypeNode* node) {
+  // NOTE: to print shape information, use PrintTensorAnnotation
+  return PrintRaggedTensorAnnotation(GetRef<RaggedDynTensorType>(node), NullOpt);
 }
 
 Doc RelaxScriptPrinter::VisitType_(const relay::TupleTypeNode* node) {
@@ -587,6 +623,8 @@ Doc RelaxScriptPrinter::PrintVarAnnotation(const relax::Var& var) {
     doc << ": ";
     if (const relax::DynTensorTypeNode* tty = annotation.as<relax::DynTensorTypeNode>()) {
       doc << PrintTensorAnnotation(GetRef<DynTensorType>(tty), var->shape_);
+    } else if (const relax::RaggedDynTensorTypeNode* tty = annotation.as<RaggedDynTensorTypeNode>()) {
+      doc << PrintRaggedTensorAnnotation(GetRef<RaggedDynTensorType>(tty), var->shape_);
     } else if (const TupleTypeNode* tty = annotation.as<TupleTypeNode>()) {
       doc << PrintTupleAnnotation(GetRef<TupleType>(tty), var->shape_);
     } else {
@@ -601,6 +639,31 @@ Doc RelaxScriptPrinter::PrintTensorAnnotation(const relax::DynTensorType& ty,
   Doc doc;
   doc << "Tensor(";
   // Print shape annotation
+  if (shape.defined()) {
+    doc << Print(Downcast<relay::Expr>(shape.value()));
+  } else {
+    doc << "None";
+  }
+  // Print dtype annotation
+  doc << ", ";
+  if (ty->dtype.is_void()) {
+    doc << "_";
+  } else {
+    doc << PrintDType(ty->dtype);
+  }
+  // Print ndim annotation only when it cannot be inferred from shape itself.
+  if (!shape.defined() || shape->IsInstance<relax::RuntimeDepShapeNode>()) {
+    doc << ", ndim = " << ty->ndim;
+  }
+  doc << ")";
+  return doc;
+}
+
+Doc RelaxScriptPrinter::PrintRaggedTensorAnnotation(const relax::RaggedDynTensorType& ty,
+                                              const Optional<ObjectRef>& shape) {
+  Doc doc;
+  doc << "RaggedTensor(";
+  // Print layout annotation
   if (shape.defined()) {
     doc << Print(Downcast<relay::Expr>(shape.value()));
   } else {
