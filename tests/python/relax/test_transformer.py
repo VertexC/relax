@@ -32,6 +32,7 @@ from tvm.script._parser import ir as I, relax as R, tir as T
 import numpy as np
 
 
+# pass an extra x here to have "f" and "h" for f*h 
 @I.ir_module
 class Transformer:
     @R.function
@@ -90,6 +91,7 @@ class Transformer:
 def run_cpu(mod, func_name, *input):
     target = tvm.target.Target("llvm")
     mod = OperatorLegalizer(mod).transform()
+    # print(mod.script())
     ex = relax.vm.build(mod, target)
     vm = relax.VirtualMachine(ex, tvm.cpu())
     return vm[func_name](*input)
